@@ -21,3 +21,17 @@ def preprocess_env(env):
     array = rgb2gray(array)
     array = block_reduce(array, block_size=(5, 5), func=np.mean)
     return array
+
+def phi(states):
+    '''
+    Function from algorithm 1 applies this preprocessing to the last 4 frames of 
+    a history and stacks them to produce the input to the Q-function
+    '''
+    phi_t = []
+    for k in range(0,4):
+        try:
+            phi_t.append(states[-1-2*k])
+        except IndexError:
+            # If not enough frames, add initial fram
+            phi_t.append(states[0])
+    return phi_t
