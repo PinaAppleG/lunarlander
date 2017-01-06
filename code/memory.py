@@ -27,8 +27,6 @@ class ReplayMemory(object):
             batch = [self.data[i] for i in idxes]
             batch_state = [self.terminal[i] for i in idxes]
         except IndexError:
-            print('Warning: the size requested is bigger than total size of Replay Memory')
             batch = self.data
             batch_state = self.terminal
         return batch, batch_state
-        
