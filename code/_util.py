@@ -17,7 +17,6 @@ def preprocess_env(env):
     '''
 
     array = env.render('rgb_array')
-    env.render(close=True)
     array = rgb2gray(array)
     array = block_reduce(array, block_size=(5, 5), func=np.mean)
     return array
@@ -34,4 +33,4 @@ def phi(states):
         except IndexError:
             # If not enough frames, add initial fram
             phi_t.append(states[0])
-    return phi_t
+    return np.array(phi_t)
