@@ -10,7 +10,7 @@ The agent has two networks:
     - The actual network that approximates Q
     - a target network whose weight updates are much slower than the actual network for stability reasons
 """
-
+from keras.initializations import normal, identity
 from keras.models import Sequential, Model
 from keras.layers import Dense, Flatten, Convolution2D, Input, merge, Lambda, Activation
 from keras.optimizers import SGD, Adam
@@ -18,15 +18,15 @@ from keras.optimizers import SGD, Adam
 HIDDEN_SIZE = 32
 
 
-class AgentNetwork:
-    def __int__(self, height, width, nb_frames, action_size, BATCH_SIZE, TAU, LEARNING_RATE):
+class AgentNetwork(object):
+    def __init__(self, height, width, nb_frames, action_size, BATCH_SIZE, TAU, LEARNING_RATE):
         self.BATCH_SIZE = BATCH_SIZE
         self.TAU = TAU
         self.LEARNING_RATE = LEARNING_RATE
         self.action_size = action_size
 
-        self.model, self.state = self.create_network(height, width, nb_frames, action_size)
-        self.target_model, self.target_state = self.create_network(height, width, nb_frames, action_size)
+        self.model = self.create_network(height, width, nb_frames, action_size)
+        self.target_model = self.create_network(height, width, nb_frames, action_size)
 
     def target_train(self):
         weights = self.model.get_weights()
@@ -38,16 +38,15 @@ class AgentNetwork:
     def create_network(self, height, width, nb_frames, action_size):
         print('Building the network')
 
-        S = Input(shape=[nb_frames, height, width])
-        c1 = Convolution2D(8, 8, 8, activation='relu')(S)
-        c2 = Convolution2D(16, 3, 3, activation='relu')(c1)
-        f1 = Flatten()(c2)
-        h1 = Dense(HIDDEN_SIZE, activation='relu')(f1)
-        V = Dense(action_size)(h1)
-
-        model = Model(input=S, output=V)
+        model = Sequential()
+        model.add(Convolution2D(8,8,8,input_shape = (nb_frames, height, width)))
+        model.add(Convolution2D(16,4,4))
+        model.add(Convolution2D(16,3,3))
+        model.add(Flatten())
+        model.add(Dense(HIDDEN_SIZE, activation='relu'))
+        model.add(Dense(action_size))
         sgd = SGD(lr=self.LEARNING_RATE)
         model.compile(loss='mse', optimizer=sgd)
-        model.summary()
+        #model.summary()
 
-        return model, S
+        return model
