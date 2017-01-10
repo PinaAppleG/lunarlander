@@ -15,7 +15,7 @@ from keras.models import Sequential, Model
 from keras.layers import Dense, Flatten, Convolution2D, Input, merge, Lambda, Activation
 from keras.optimizers import SGD, Adam
 
-HIDDEN_SIZE = 32
+HIDDEN_SIZE = 512
 
 
 class AgentNetwork(object):
@@ -39,9 +39,9 @@ class AgentNetwork(object):
         print('Building the network')
 
         model = Sequential()
-        model.add(Convolution2D(8,8,8,input_shape = (nb_frames, height, width)))
-        model.add(Convolution2D(16,4,4))
-        model.add(Convolution2D(16,3,3))
+        model.add(Convolution2D(32,8,8,input_shape = (nb_frames, height, width)))
+        model.add(Convolution2D(64,4,4))
+        model.add(Convolution2D(64,3,3))
         model.add(Flatten())
         model.add(Dense(HIDDEN_SIZE, activation='relu'))
         model.add(Dense(action_size))

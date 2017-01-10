@@ -18,7 +18,7 @@ def preprocess_env(env):
 
     array = env.render('rgb_array')
     array = rgb2gray(array)
-    array = block_reduce(array, block_size=(5, 5), func=np.mean)
+    array = block_reduce(array, block_size=(10, 10), func=np.max)
     return array
 
 def phi(states):
