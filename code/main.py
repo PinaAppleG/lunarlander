@@ -10,40 +10,42 @@ from AgentNetwork import AgentNetwork
 
 
 def play(train_indicator=0):  # 1=train, 2=run simply
-    MEMORY_SIZE = 100  # CHANGE TO BIGGER VALUE BEFORE RUNNING
-    BATCH_SIZE = 16  # CHANGE TO BIGGER VALUE BEFORE RUNNING
-    GAMMA = 0.9
+    MEMORY_SIZE = 1000  # CHANGE TO BIGGER VALUE BEFORE RUNNING
+    BATCH_SIZE = 32  # CHANGE TO BIGGER VALUE BEFORE RUNNING
+    GAMMA = 0.95
     TAU = 0.001
-    LEARNING_RATE = 0.00001
+    LEARNING_RATE = 0.000001
 
     nb_actions = 4
     nb_frames = 4
-    height = 40
-    width = 60
+    height = 100
+    width = 100
 
     nb_episodes = 10  # CHANGE TO BIGGER VALUE BEFORE RUNNING
     max_steps = 200  # CHANGE TO BIGGER VALUE BEFORE RUNNING
 
-    epsilon = 0.01
+    epsilon = 1     # this will be annhilited from 1 to 0.1 over the frames
 
     replay_memory = ReplayMemory(MEMORY_SIZE)
     agent = AgentNetwork(height, width, nb_frames, nb_actions, BATCH_SIZE, TAU, LEARNING_RATE)
 
     env = gym.make('LunarLander-v2')
 
+    n_frames_processed = 0
     for episode in range(nb_episodes):
-        env.reset()
 
+        env.reset()
         loss_v = []
         reward_v = []
 
         s_t = [preprocess_env(env)]
 
         for t in range(max_steps):
+            n_frames_processed += 1
             loss = 0
             cum_reward = 0
 
-            if np.random.rand() < epsilon:
+            if np.random.rand() < min(10000/n_frames_processed,0.1):
                 a_t = np.random.randint(4)
             else:
                 q = agent.model.predict(phi(s_t)[None, :, :, :])[0]
@@ -93,22 +95,26 @@ def play(train_indicator=0):  # 1=train, 2=run simply
 
             #Perform a gradient descent step on (yj - Q(j ; aj ; theta))2 according to equation 3
             callback = agent.model.train_on_batch(np.array(x_batch)[0],np.array(y_batch)[0])
-            print('Loss on batch: '+str(loss))
+            print('Loss on batch: '+str(callback))
             agent.target_train()
             loss_v.append(callback)
 
             if env.game_over:
                 break
         print(cum_reward)
-        reward_v.append(cum_reward)
-
         if (train_indicator):
             loss_v.append(loss)
+            reward_v.append(cum_reward)
+            
+            cumulative_rewards = np.array(reward_v)
+            losses = np.array(loss_v)
+            np.save('rewards',cumulative_rewards)
+            np.save('loss',losses)
             print("Now we save model")
             agent.model.save_weights("model.h5f", overwrite=True)
-            with open("model.json", "w") as outfile:
-                json.dump(agent.model.to_json(), outfile)
+           
     env.close()
+
     print("finish")
 
 
