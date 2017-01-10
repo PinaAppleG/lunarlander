@@ -10,7 +10,7 @@ from AgentNetwork import AgentNetwork
 
 
 def play(train_indicator=0):  # 1=train, 2=run simply
-    MEMORY_SIZE = 1000  # CHANGE TO BIGGER VALUE BEFORE RUNNING
+    MEMORY_SIZE = 200  # CHANGE TO BIGGER VALUE BEFORE RUNNING
     BATCH_SIZE = 32  # CHANGE TO BIGGER VALUE BEFORE RUNNING
     GAMMA = 0.95
     TAU = 0.001
@@ -21,7 +21,7 @@ def play(train_indicator=0):  # 1=train, 2=run simply
     height = 100
     width = 100
 
-    nb_episodes = 10  # CHANGE TO BIGGER VALUE BEFORE RUNNING
+    nb_episodes = 100  # CHANGE TO BIGGER VALUE BEFORE RUNNING
     max_steps = 200  # CHANGE TO BIGGER VALUE BEFORE RUNNING
 
     epsilon = 1     # this will be annhilited from 1 to 0.1 over the frames
@@ -32,20 +32,21 @@ def play(train_indicator=0):  # 1=train, 2=run simply
     env = gym.make('LunarLander-v2')
 
     n_frames_processed = 0
+    reward_v = []
+    loss_v = []
+
     for episode in range(nb_episodes):
 
         env.reset()
-        loss_v = []
-        reward_v = []
-
         s_t = [preprocess_env(env)]
 
+        cum_reward = 0
         for t in range(max_steps):
             n_frames_processed += 1
             loss = 0
-            cum_reward = 0
+            
 
-            if np.random.rand() < min(10000/n_frames_processed,0.1):
+            if np.random.rand() < max(10000/n_frames_processed,0.1):
                 a_t = np.random.randint(4)
             else:
                 q = agent.model.predict(phi(s_t)[None, :, :, :])[0]
@@ -59,8 +60,8 @@ def play(train_indicator=0):  # 1=train, 2=run simply
             s_t.append(x_t1)
 
             replay_memory.append([phi(temp), a_t, r_t, phi(s_t)], env.game_over)
-            cum_reward += GAMMA ** t * r_t
-
+            #cum_reward += GAMMA ** t * r_t
+            cum_reward += r_t
             batch, batch_state = replay_memory.mini_batch(size=agent.BATCH_SIZE)
             
             x_batch = []
@@ -102,17 +103,17 @@ def play(train_indicator=0):  # 1=train, 2=run simply
             if env.game_over:
                 break
         print(cum_reward)
+        
         if (train_indicator):
             loss_v.append(loss)
             reward_v.append(cum_reward)
-            
-            cumulative_rewards = np.array(reward_v)
-            losses = np.array(loss_v)
-            np.save('rewards',cumulative_rewards)
-            np.save('loss',losses)
+
+            np.save('loss',loss_v)
+            np.save('reward',reward_v)
+
             print("Now we save model")
             agent.model.save_weights("model.h5f", overwrite=True)
-           
+          
     env.close()
 
     print("finish")
