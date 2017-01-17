@@ -5,13 +5,31 @@ import seaborn
 
 from keras.initializations import normal, identity
 from keras.models import Sequential, Model, model_from_json
-from keras.layers import Dense, Flatten, Input, merge, Lambda, Activation, Convolution2D
+from keras.layers import Dense, Flatten, Input, merge, Lambda, Activation, Layer
 from keras.optimizers import Adam, SGD
+from keras import backend as K
 
 from rl.agents.ddpg import DDPGAgent
 from rl.memory import SequentialMemory
 from rl.callbacks import Callback
 import random
+
+
+# class Clip(Layer):
+#      '''
+#      Clipping layer
+#      Used her to force the actor outputs to be in [-1,1]
+#      '''
+#      def __init__(self, low=-np.inf, high=np.inf, **kwargs):
+#          self.low = low
+#          self.high = high
+#          super(Clip, self).__init__(**kwargs)
+#
+#      def output(self, train):#, current_batch_size):
+#          X = self.get_input(train)#, current_batch_size)
+#          return K.tensor.maximum(K.tensor.minimum(X, self.high), self.low)
+
+
 
 # Loading the environment
 ENV_NAME = 'LunarLanderContinuous-v2'
@@ -23,11 +41,13 @@ LEARNING_RATE = 0.001
 
 # Actor model
 print("Building the actor")
-S = Input(shape=(1,)+env.observation_space.shape)
+S = Input(shape=(1,) + env.observation_space.shape)
 h0 = Dense(HIDDEN_SIZE / 2, activation='relu')(S)
 h1 = Dense(HIDDEN_SIZE, activation='relu')(h0)
-Main_engine = Dense(1, activation='tanh')(h1)
-Secondary_engine = Dense(1, activation='tanh')(h1)
+Main_engine = Dense(1, activation='linear')(h1)
+#Main_engine = Clip(high=1, low=-1)(Main_engine)
+Secondary_engine = Dense(1, activation='linear')(h1)
+#Secondary_engine = Clip(high=1, low=-1)(Secondary_engine)
 V = merge([Main_engine, Secondary_engine], mode='concat')
 actorModel = Model(input=S, output=V)
 # actorModel.summary()
@@ -35,14 +55,14 @@ print("Building actor finished")
 
 # Critic model
 print("Building the critic")
-S = Input(shape=(1,)+env.observation_space.shape)
-A = Input(shape=(1,)+env.action_space.shape, name='action2')
+S = Input(shape=(1,) + env.observation_space.shape)
+A = Input(shape=(1,) + env.action_space.shape, name='action2')
 w1 = Dense(HIDDEN_SIZE / 2, activation='relu')(S)
 a1 = Dense(HIDDEN_SIZE, activation='linear')(A)
 h1 = Dense(HIDDEN_SIZE, activation='linear')(w1)
 h2 = merge([h1, a1], mode='sum')
 h3 = Dense(HIDDEN_SIZE, activation='relu')(h2)
-V = Dense(env.action_space.shape[0], activation='linear')(h3)
+V = Dense(1, activation='linear')(h3)
 criticModel = Model(input=[S, A], output=V)
 print("Building critic finished")
 
@@ -97,5 +117,5 @@ ddpg = DDPGAgent(nb_actions=env.action_space.shape[0], actor=actorModel, critic=
 ddpg.compile(optimizer=[Adam(lr=LEARNING_RATE, decay=2.25e-05), Adam(lr=LEARNING_RATE, decay=2.25e-05)],
              metrics=['mse'])
 
-cbs=[LivePlotCallback(nb_episodes=4000, avgwindow=20)]
-ddpg.fit(env, nb_steps=100000, callbacks=cbs)
+cbs = [LivePlotCallback(nb_episodes=4000, avgwindow=20)]
+ddpg.fit(env, nb_steps=100000, callbacks=cbs, verbose=2)
